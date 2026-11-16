@@ -10,7 +10,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "xyz.lukioff.webstreamvr"
+        applicationId = "org.quasarcast.app"
         minSdk = 34
         targetSdk = 37
         versionCode = 1

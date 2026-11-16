@@ -16,23 +16,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,22 +49,23 @@ import xyz.lukioff.webstreamvr.AspectRatio
 import xyz.lukioff.webstreamvr.R
 import xyz.lukioff.webstreamvr.StreamSettings
 import xyz.lukioff.webstreamvr.StreamStatus
-import xyz.lukioff.webstreamvr.cast.CastPkgState
-import xyz.lukioff.webstreamvr.cast.HeadsetLink
+import xyz.lukioff.webstreamvr.cast.CaptureState
+import xyz.lukioff.webstreamvr.ui.theme.NebulaCyan
+import xyz.lukioff.webstreamvr.ui.theme.QuasarOrange
+import xyz.lukioff.webstreamvr.ui.theme.StatusAmber
+import xyz.lukioff.webstreamvr.ui.theme.StatusGray
+import xyz.lukioff.webstreamvr.ui.theme.StatusGreen
+import xyz.lukioff.webstreamvr.ui.theme.StatusRed
 
 @Composable
 fun MainScreen(
     status: StreamStatus,
     settings: StreamSettings,
-    castPkgState: CastPkgState,
     onSettingsChange: (StreamSettings) -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
-    onInstallService: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showInstallDialog by remember { mutableStateOf(false) }
-
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier
@@ -75,20 +75,8 @@ fun MainScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-            StatusCard(
-                status = status,
-                castPkgState = castPkgState,
-                onStart = {
-                    if (castPkgState != CastPkgState.OK) {
-                        showInstallDialog = true
-                    } else {
-                        onStart()
-                    }
-                },
-                onStop = onStop,
-                onInstallService = onInstallService,
-            )
+            Header()
+            StatusCard(status = status, onStart = onStart, onStop = onStop)
             SettingsCard(settings, onSettingsChange)
             Text(
                 stringResource(R.string.hint_footer),
@@ -97,31 +85,23 @@ fun MainScreen(
             )
         }
     }
+}
 
-    if (showInstallDialog) {
-        val dialogDesc = when (castPkgState) {
-            CastPkgState.OUTDATED -> stringResource(R.string.install_dialog_desc_outdated)
-            else -> stringResource(R.string.install_dialog_desc_missing)
-        }
-        AlertDialog(
-            onDismissRequest = { showInstallDialog = false },
-            title = { Text(stringResource(R.string.install_dialog_title)) },
-            text = { Text(dialogDesc) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showInstallDialog = false
-                        onInstallService()
-                    }
-                ) {
-                    Text(stringResource(R.string.action_install_service))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showInstallDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            }
+@Composable
+private fun Header() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(14.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(QuasarOrange),
+        )
+        Spacer(Modifier.size(12.dp))
+        Text(
+            stringResource(R.string.app_name),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = NebulaCyan,
         )
     }
 }
@@ -129,13 +109,15 @@ fun MainScreen(
 @Composable
 private fun StatusCard(
     status: StreamStatus,
-    castPkgState: CastPkgState,
     onStart: () -> Unit,
     onStop: () -> Unit,
-    onInstallService: () -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier
@@ -149,12 +131,7 @@ private fun StatusCard(
             status.detail?.let { detail ->
                 Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             }
-            if (castPkgState != CastPkgState.OK || status.detail?.contains("com.oculus.magicislandcastingservice") == true) {
-                OutlinedButton(onClick = onInstallService) {
-                    Text(stringResource(R.string.action_install_service))
-                }
-            }
-            if (status.running && status.headset == HeadsetLink.State.STREAMING) {
+            if (status.running && status.headset == CaptureState.STREAMING) {
                 Text(
                     stringResource(
                         R.string.stats_line,
@@ -169,6 +146,7 @@ private fun StatusCard(
                 }
                 status.streamCode?.let { code ->
                     Card(
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -198,16 +176,25 @@ private fun StatusCard(
                     SelectionContainer {
                         Column {
                             status.urls.forEach {
-                                Text(it, style = MaterialTheme.typography.titleLarge, fontFamily = FontFamily.Monospace)
+                                Text(it, style = MaterialTheme.typography.titleLarge, fontFamily = FontFamily.Monospace, color = NebulaCyan)
                             }
                         }
                     }
                 }
             }
             if (status.running) {
-                OutlinedButton(onClick = onStop) { Text(stringResource(R.string.action_stop)) }
+                OutlinedButton(
+                    onClick = onStop,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                ) { Text(stringResource(R.string.action_stop)) }
             } else {
-                Button(onClick = onStart) { Text(stringResource(R.string.action_start)) }
+                Button(
+                    onClick = onStart,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = QuasarOrange),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                ) { Text(stringResource(R.string.action_start), fontWeight = FontWeight.SemiBold) }
             }
         }
     }
@@ -216,7 +203,11 @@ private fun StatusCard(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SettingsCard(settings: StreamSettings, onChange: (StreamSettings) -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleMedium)
 
@@ -269,28 +260,6 @@ private fun SettingsCard(settings: StreamSettings, onChange: (StreamSettings) ->
                 }
             }
 
-            Setting(stringResource(R.string.setting_eye)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(settings.eye == 0, { onChange(settings.copy(eye = 0)) }, { Text(stringResource(R.string.eye_left)) })
-                    FilterChip(settings.eye == 1, { onChange(settings.copy(eye = 1)) }, { Text(stringResource(R.string.eye_right)) })
-                }
-            }
-
-            Setting(stringResource(R.string.setting_fov, settings.fovAdjustment), stringResource(R.string.setting_fov_hint)) {
-                // Keep the slider smooth and save only when the user lets go.
-                var fov by remember(settings.fovAdjustment) { mutableFloatStateOf(settings.fovAdjustment.toFloat()) }
-                Slider(
-                    value = fov,
-                    onValueChange = { fov = it },
-                    onValueChangeFinished = { onChange(settings.copy(fovAdjustment = fov.toInt())) },
-                    valueRange = 0f..StreamSettings.MAX_FOV_ADJUSTMENT.toFloat(),
-                    steps = StreamSettings.MAX_FOV_ADJUSTMENT / 5 - 1,
-                )
-            }
-
-            SwitchRow(stringResource(R.string.setting_stabilization), settings.stabilization) {
-                onChange(settings.copy(stabilization = it))
-            }
             SwitchRow(stringResource(R.string.setting_audio), settings.audio) {
                 onChange(settings.copy(audio = it))
             }
@@ -336,17 +305,15 @@ private fun SwitchRow(title: String, checked: Boolean, onChange: (Boolean) -> Un
 private fun stateText(status: StreamStatus): String = when {
     !status.running -> stringResource(R.string.state_stopped)
     else -> when (status.headset) {
-        HeadsetLink.State.IDLE, HeadsetLink.State.STARTING -> stringResource(R.string.state_starting)
-        HeadsetLink.State.WAITING_FOR_HEADSET -> stringResource(R.string.state_waiting)
-        HeadsetLink.State.CONNECTED -> stringResource(R.string.state_connected)
-        HeadsetLink.State.STREAMING -> stringResource(R.string.state_streaming)
-        HeadsetLink.State.ERROR -> stringResource(R.string.state_error)
+        CaptureState.IDLE, CaptureState.STARTING -> stringResource(R.string.state_starting)
+        CaptureState.STREAMING -> stringResource(R.string.state_streaming)
+        CaptureState.ERROR -> stringResource(R.string.state_error)
     }
 }
 
 private fun stateColor(status: StreamStatus): Color = when {
-    !status.running -> Color(0xFF8A8A8A)
-    status.headset == HeadsetLink.State.STREAMING -> Color(0xFF3DDC84)
-    status.headset == HeadsetLink.State.ERROR -> Color(0xFFFF5252)
-    else -> Color(0xFFFFC107)
+    !status.running -> StatusGray
+    status.headset == CaptureState.STREAMING -> StatusGreen
+    status.headset == CaptureState.ERROR -> StatusRed
+    else -> StatusAmber
 }

@@ -20,7 +20,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import org.json.JSONObject
-import xyz.lukioff.webstreamvr.cast.HeadsetLink
+import xyz.lukioff.webstreamvr.cast.CaptureListener
+import xyz.lukioff.webstreamvr.cast.CaptureState
+import xyz.lukioff.webstreamvr.cast.ScreenCaptureLink
 import xyz.lukioff.webstreamvr.web.ViewerHub
 import xyz.lukioff.webstreamvr.web.WebServer
 import java.io.IOException
@@ -30,7 +32,7 @@ import java.net.NetworkInterface
 /** What the UI shows; published by [StreamService]. */
 data class StreamStatus(
     val running: Boolean = false,
-    val headset: HeadsetLink.State = HeadsetLink.State.IDLE,
+    val headset: CaptureState = CaptureState.IDLE,
     val detail: String? = null,
     val width: Int = 0,
     val height: Int = 0,
@@ -45,11 +47,11 @@ data class StreamStatus(
 /**
  * Foreground service that owns the headset link, the viewer hub and the web server.
  */
-class StreamService : Service(), HeadsetLink.Listener {
+class StreamService : Service(), CaptureListener {
 
     private lateinit var settings: StreamSettings
     private lateinit var hub: ViewerHub
-    private lateinit var link: HeadsetLink
+    private lateinit var link: ScreenCaptureLink
     private var web: WebServer? = null
     private var wifiLock: WifiManager.WifiLock? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -74,7 +76,11 @@ class StreamService : Service(), HeadsetLink.Listener {
                 stopSelf()
             }
             ACTION_APPLY -> if (started) applySettings()
-            else -> startStreaming()
+            else -> {
+                val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, 0) ?: 0
+                val resultData = intent?.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
+                if (resultData != null) startStreaming(resultCode, resultData)
+            }
         }
         return START_NOT_STICKY
     }
@@ -86,23 +92,23 @@ class StreamService : Service(), HeadsetLink.Listener {
 
     private var streamCode: String? = null
 
-    private fun startStreaming() {
+    private fun startStreaming(resultCode: Int, resultData: Intent) {
         if (started) stopStreaming()
         started = true
         startForeground(
             NOTIFICATION_ID,
             buildNotification(getString(R.string.notification_starting)),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION,
         )
         val code = (100000..999999).random().toString()
         streamCode = code
         settings = StreamSettings.load(this)
         hub = ViewerHub { link.requestKeyframe() }
-        link = HeadsetLink(applicationContext, this)
+        link = ScreenCaptureLink(applicationContext, this)
         acquireLocks()
         _status.value = StreamStatus(running = true, streamCode = code)
         startWebServer()
-        link.start(settings.toLinkSettings())
+        link.start(resultCode, resultData, settings.toCaptureSettings())
         handler.post(tick)
     }
 
@@ -123,7 +129,6 @@ class StreamService : Service(), HeadsetLink.Listener {
         val newSettings = StreamSettings.load(this)
         val portChanged = newSettings.httpPort != settings.httpPort
         settings = newSettings
-        link.update(newSettings.toLinkSettings())
         if (portChanged) {
             web?.stop()
             web = null
@@ -145,11 +150,11 @@ class StreamService : Service(), HeadsetLink.Listener {
         }
     }
 
-    // HeadsetLink.Listener — called from network threads.
+    // CaptureListener — called from the capture/encode thread.
 
-    override fun onStateChanged(state: HeadsetLink.State, detail: String?) {
+    override fun onStateChanged(state: CaptureState, detail: String?) {
         if (!started) return
-        if (state == HeadsetLink.State.STARTING) hub.resetStream()
+        if (state == CaptureState.STARTING) hub.resetStream()
         _status.update { it.copy(headset = state, detail = detail) }
     }
 
@@ -233,12 +238,18 @@ class StreamService : Service(), HeadsetLink.Listener {
         const val ACTION_START = "xyz.lukioff.webstreamvr.START"
         const val ACTION_STOP = "xyz.lukioff.webstreamvr.STOP"
         const val ACTION_APPLY = "xyz.lukioff.webstreamvr.APPLY"
+        const val EXTRA_RESULT_CODE = "resultCode"
+        const val EXTRA_RESULT_DATA = "resultData"
 
         private val _status = MutableStateFlow(StreamStatus())
         val status: StateFlow<StreamStatus> = _status.asStateFlow()
 
-        fun start(context: Context) {
-            context.startForegroundService(Intent(context, StreamService::class.java).setAction(ACTION_START))
+        fun start(context: Context, resultCode: Int, resultData: Intent) {
+            val intent = Intent(context, StreamService::class.java)
+                .setAction(ACTION_START)
+                .putExtra(EXTRA_RESULT_CODE, resultCode)
+                .putExtra(EXTRA_RESULT_DATA, resultData)
+            context.startForegroundService(intent)
         }
 
         fun stop(context: Context) {

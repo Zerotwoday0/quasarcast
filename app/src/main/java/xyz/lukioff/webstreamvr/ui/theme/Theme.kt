@@ -2,55 +2,37 @@ package xyz.lukioff.webstreamvr.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+private val OnAccent = Color(0xFF05070D)
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val QuasarColorScheme = darkColorScheme(
+    primary = QuasarOrange,
+    onPrimary = OnAccent,
+    primaryContainer = QuasarOrangeDim,
+    onPrimaryContainer = TextPrimary,
+    secondary = NebulaCyan,
+    onSecondary = OnAccent,
+    secondaryContainer = NebulaCyanDim,
+    onSecondaryContainer = TextPrimary,
+    tertiary = NebulaCyan,
+    background = SpaceBackground,
+    onBackground = TextPrimary,
+    surface = SpaceSurface,
+    onSurface = TextPrimary,
+    surfaceVariant = SpaceSurfaceVariant,
+    onSurfaceVariant = TextMuted,
+    error = StatusRed,
+    onError = OnAccent,
 )
 
 @Composable
-fun WebStreamVRTheme(
-    // Horizon OS panels are dark; a light panel is glaring in the headset.
-    darkTheme: Boolean = true,
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+fun QuasarCastTheme(content: @Composable () -> Unit) {
+    // Horizon OS panels are dark; a light theme is glaring in the headset.
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = QuasarColorScheme,
         typography = Typography,
-        content = content
+        content = content,
     )
 }

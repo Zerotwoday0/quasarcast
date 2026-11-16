@@ -1,15 +1,13 @@
 <resources>
-    <string name="app_name">WebStream VR</string>
+    <string name="app_name">QuasarCast</string>
 
     <string name="action_start">Начать трансляцию</string>
     <string name="action_stop">Остановить</string>
 
     <string name="state_stopped">Трансляция остановлена</string>
-    <string name="state_starting">Запуск сервиса кастинга…</string>
-    <string name="state_waiting">Ждём подключения сервиса кастинга…</string>
-    <string name="state_connected">Шлем подключён, ждём первые кадры…</string>
+    <string name="state_starting">Запуск захвата экрана…</string>
     <string name="state_streaming">Идёт трансляция</string>
-    <string name="state_error">Нет связи со шлемом, повторяем…</string>
+    <string name="state_error">Ошибка захвата, повторяем…</string>
 
     <string name="stats_line">%1$d×%2$d · %3$.0f к/с · %4$.1f Мбит/с · зрителей: %5$d</string>
     <string name="stream_code_label">Код подключения</string>
@@ -20,30 +18,18 @@
     <string name="setting_aspect">Формат кадра</string>
     <string name="setting_quality">Качество: %1$d×%2$d</string>
     <string name="setting_bitrate">Битрейт</string>
-    <string name="setting_bitrate_hint">Через Wi-Fi: 1080p — 6–10 Мбит/с, 1440p — 12–16. Если картинка замирает, снизьте битрейт или качество. «Авто» — 10–20 Мбит/с на усмотрение шлема.</string>
+    <string name="setting_bitrate_hint">Через Wi-Fi: 1080p — 6–10 Мбит/с, 1440p — 12–16. Если картинка замирает, снизьте битрейт или качество. «Авто» — фиксирует 8 Мбит/с.</string>
     <string name="bitrate_auto">Авто</string>
     <string name="bitrate_mbps">%1$d Мбит/с</string>
     <string name="setting_frame_rate">Частота кадров</string>
-    <string name="setting_frame_rate_hint">Шлем может игнорировать это значение и отдавать до 60 к/с</string>
-    <string name="setting_eye">Глаз</string>
-    <string name="eye_left">Левый</string>
-    <string name="eye_right">Правый</string>
-    <string name="setting_fov">Расширение обзора: +%1$d°</string>
-    <string name="setting_fov_hint">0 — стандартный кадр, большие значения захватывают больше, но с искажениями по краям</string>
-    <string name="setting_stabilization">Стабилизация поворотов головы</string>
+    <string name="setting_frame_rate_hint">Кодируется столько кадров, сколько реально приходит с экрана шлема</string>
     <string name="setting_audio">Передавать звук</string>
     <string name="setting_port">Порт веб-сервера</string>
     <string name="setting_port_invalid">Порт от 1024 до 65535</string>
 
-    <string name="hint_footer">Трансляцию делает системный сервис кастинга Meta, в шлеме при этом горит индикатор записи. Пока идёт трансляция, датчик приближения отключён, и экран шлема не гаснет, даже если его снять.</string>
+    <string name="hint_footer">Трансляция идёт через системную запись экрана Android (MediaProjection) — в шлеме горит индикатор записи. Звук приложений пока не захватывается, переключатель ничего не делает.</string>
 
     <string name="notification_channel">Трансляция</string>
     <string name="notification_starting">Запуск трансляции…</string>
     <string name="notification_no_network">Нет сети Wi-Fi</string>
-
-    <string name="action_install_service">Установить сервис</string>
-    <string name="install_dialog_title">Требуется сервис кастинга</string>
-    <string name="install_dialog_desc_missing">Пакет com.oculus.magicislandcastingservice не найден в системе. Установить его сейчас?</string>
-    <string name="install_dialog_desc_outdated">Версия com.oculus.magicislandcastingservice на устройстве устарела или не подходит. Установить нужную версию из ресурсов?</string>
-    <string name="action_cancel">Отмена</string>
 </resources>
